@@ -154,12 +154,26 @@ yolo detect val model=runs/detect/runs/train_cup_mouse_v3_cup_more/weights/best.
   - 未发现越界坐标
   - 已将少量 Roboflow 导出的分割格式标签转换为 YOLO 检测框格式
   - 已删除旧的 `labels.cache`，保证下一次训练重新扫描标签
-- 为了减少真实场景中的误检和漏检，下一版模型准备从 YOLOv8s 预训练权重开始训练。
-- 第四版模型计划训练 50 个 epoch：
+- 为了减少真实场景中的误检和漏检，第四版模型从 YOLOv8s 预训练权重开始训练。
+- 第四版模型训练命令：
 
 ```bash
 yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=640 batch=8 project=runs name=train_cup_mouse_v4_yolov8s
 ```
+
+- 第四版模型训练耗时：约 7.595 小时。
+- 第四版模型参数量：11,126,358。
+- 第四版模型权重保存位置：
+  - `runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.pt`
+  - `runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/last.pt`
+- 第四版模型验证集结果：
+  - Precision：0.888
+  - Recall：0.836
+  - mAP50：0.895
+  - mAP50-95：0.647
+- 第四版模型分类别验证结果：
+  - cup：Precision = 0.919，Recall = 0.878，mAP50 = 0.916，mAP50-95 = 0.661
+  - mouse：Precision = 0.856，Recall = 0.795，mAP50 = 0.873，mAP50-95 = 0.633
 
 - 训练完成后使用 test 集独立评估：
 
@@ -168,8 +182,8 @@ yolo detect val model=runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.p
 ```
 
 ## 下一步计划
-- 使用 YOLOv8s 训练第四版 cup/mouse 模型
-- 使用 test 集和真实桌面图片测试新模型检测效果
+- 使用 test 集独立评估第四版模型
+- 使用真实桌面图片测试第四版模型检测效果
 - 编写摄像头实时检测脚本
 - 将模型部署到 Jetson 开发板
 - 后续根据实验需要考虑加入 phone 第三类

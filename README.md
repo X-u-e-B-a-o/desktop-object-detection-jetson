@@ -70,10 +70,17 @@ Validation mAP50: 0.922
 Test mAP50: 0.959
 ```
 
-下一版计划使用 YOLOv8s 预训练权重重新训练 50 个 epoch：
+已使用 YOLOv8s 预训练权重重新训练第四版模型 50 个 epoch：
 
 ```bash
 yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=640 batch=8 project=runs name=train_cup_mouse_v4_yolov8s
+```
+
+第四版模型验证集结果：
+
+```text
+Validation mAP50: 0.895
+Validation mAP50-95: 0.647
 ```
 
 详细训练命令、评估结果和进度记录见 `docs/progress.md`。
