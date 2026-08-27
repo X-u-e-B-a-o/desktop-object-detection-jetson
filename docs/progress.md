@@ -191,9 +191,17 @@ yolo detect val model=runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.p
 - 第四版模型分类别 test 集结果：
   - cup：Precision = 0.946，Recall = 0.905，mAP50 = 0.951，mAP50-95 = 0.703
   - mouse：Precision = 0.851，Recall = 1.000，mAP50 = 0.969，mAP50-95 = 0.742
+- 新增 Jetson 实时检测脚本：
+  - 脚本路径：`src/realtime_detect.py`
+  - 支持 USB 摄像头、视频文件和 OpenCV/GStreamer 摄像头源
+  - 默认检测阈值：`conf=0.3`，`cup-conf=0.3`，`mouse-conf=0.3`
+  - 运行方式：
+
+```bash
+python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt --conf 0.3 --cup-conf 0.3 --mouse-conf 0.3
+```
 
 ## 下一步计划
 - 使用真实桌面图片测试第四版模型检测效果
-- 编写摄像头实时检测脚本
 - 将模型部署到 Jetson 开发板
 - 后续根据实验需要考虑加入 phone 第三类

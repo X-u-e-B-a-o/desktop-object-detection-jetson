@@ -109,6 +109,36 @@ python src/predict_image.py test_images/desk4.jpg
 python src/predict_image.py test_images/desk4.jpg --conf 0.7
 ```
 
+## Jetson 部署与实时检测
+
+训练完成后的模型权重不提交到 GitHub，需要单独传到 Jetson。推荐把第四版模型复制为：
+
+```text
+models/cup_mouse_v4_yolov8s.pt
+```
+
+从 Mac 传到 Jetson 的示例命令：
+
+```bash
+scp runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.pt jetson@JETSON_IP:~/desktop-object-detection-jetson/models/cup_mouse_v4_yolov8s.pt
+```
+
+在 Jetson 上进入项目目录后安装依赖：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install ultralytics opencv-python numpy
+```
+
+接 USB 摄像头实时检测：
+
+```bash
+python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt --conf 0.3 --cup-conf 0.3 --mouse-conf 0.3
+```
+
+运行后会打开摄像头窗口并实时显示检测框，按 `q` 退出。
+
 ## 项目进度
 
 见 `docs/progress.md`
