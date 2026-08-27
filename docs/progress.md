@@ -181,8 +181,18 @@ yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=
 yolo detect val model=runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.pt data=data/combined/data.yaml split=test
 ```
 
+- 第四版模型 test 集结果：
+  - 测试图片：58 张
+  - 标注实例：63 个
+  - Precision：0.898
+  - Recall：0.952
+  - mAP50：0.960
+  - mAP50-95：0.722
+- 第四版模型分类别 test 集结果：
+  - cup：Precision = 0.946，Recall = 0.905，mAP50 = 0.951，mAP50-95 = 0.703
+  - mouse：Precision = 0.851，Recall = 1.000，mAP50 = 0.969，mAP50-95 = 0.742
+
 ## 下一步计划
-- 使用 test 集独立评估第四版模型
 - 使用真实桌面图片测试第四版模型检测效果
 - 编写摄像头实时检测脚本
 - 将模型部署到 Jetson 开发板

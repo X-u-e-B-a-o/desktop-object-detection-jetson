@@ -81,6 +81,8 @@ yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=
 ```text
 Validation mAP50: 0.895
 Validation mAP50-95: 0.647
+Test mAP50: 0.960
+Test mAP50-95: 0.722
 ```
 
 详细训练命令、评估结果和进度记录见 `docs/progress.md`。
