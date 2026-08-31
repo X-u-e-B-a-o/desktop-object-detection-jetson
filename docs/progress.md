@@ -212,7 +212,41 @@ python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt 
 python src/realtime_coco_filter.py --source 0 --model yolov8s.pt --conf 0.3
 ```
 
+## 2026-08-31
+- 根据实时检测测试结果，将 `bottle` 从原来的 `cup` 类中拆分出来，项目类别调整为三类：
+  - `0 = cup`
+  - `1 = bottle`
+  - `2 = mouse`
+- 使用 COCO 预训练 YOLOv8s 辅助拆分原 `cup` 标注：
+  - 原 `mouse` 标签从类别 `1` 改为类别 `2`
+  - 与 COCO `bottle` 检测框重合较高的原 `cup` 标签改为类别 `1`
+  - 其余原 `cup` 标签保留为类别 `0`
+- 三分类数据集当前标注框统计：
+  - cup：1236 个
+  - bottle：129 个
+  - mouse：321 个
+- 已更新 `data/combined/data.yaml`：
+
+```yaml
+nc: 3
+names:
+  0: cup
+  1: bottle
+  2: mouse
+```
+
+- 原二分类标签已备份到 `data/label_backup_before_cup_bottle_split`。
+- 新增可复用转换脚本：
+  - `scripts/split_cup_bottle_labels.py`
+- 已更新真实图片预测和实时检测脚本，使其支持 `cup`、`bottle`、`mouse` 三类。
+- 下一版三分类模型训练命令：
+
+```bash
+yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=640 batch=8 project=runs name=train_cup_bottle_mouse_v5_yolov8s
+```
+
 ## 下一步计划
-- 使用真实桌面图片测试第四版模型检测效果
-- 将模型部署到 Jetson 开发板
-- 后续根据实验需要考虑加入 phone 第三类
+- 使用三分类数据集重新训练 cup/bottle/mouse 模型
+- 使用真实桌面图片测试三分类模型检测效果
+- 将三分类模型部署到 Jetson 开发板
+- 后续根据实验需要考虑加入 phone 第四类

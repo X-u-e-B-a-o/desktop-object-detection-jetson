@@ -14,6 +14,7 @@
 
 当前模型类别：
 - cup
+- bottle
 - mouse
 
 后续可扩展：
@@ -29,8 +30,8 @@
 - 已使用 YOLOv8n 训练第一版目标检测模型。
 - 已使用 test 集完成独立评估。
 - 已补充真实桌面场景图片，并用 Roboflow 手动标注后合并进训练集，用于后续微调模型。
-- 已将水壶、保温杯等高水杯类物体统一归入 `cup` 类。
-- 准备使用 YOLOv8s 预训练模型重新训练 50 个 epoch，提升真实场景下的稳定性。
+- 已完成 YOLOv8s 预训练模型 50 个 epoch 训练和 test 集评估。
+- 已将 `bottle` 从原来的 `cup` 类中拆分出来，当前项目采用 `cup`、`bottle`、`mouse` 三类。
 
 ## 数据集说明
 
@@ -40,7 +41,8 @@
 
 ```text
 0 = cup
-1 = mouse
+1 = bottle
+2 = mouse
 ```
 
 当前合并后的训练集规模：
@@ -55,8 +57,16 @@ test images: 58
 
 ```text
 cup/mouse real images: 34 images
-water bottle / thermos as cup: 31 images
+water bottle / thermos images: 31 images
 additional cup images: 98 images
+```
+
+当前三分类标注框统计：
+
+```text
+cup annotations: 1236
+bottle annotations: 129
+mouse annotations: 321
 ```
 
 出于仓库体积和隐私考虑，原始数据集、真实测试图片、训练输出和模型权重不直接提交到 GitHub。
@@ -86,6 +96,12 @@ Test mAP50-95: 0.722
 ```
 
 详细训练命令、评估结果和进度记录见 `docs/progress.md`。
+
+拆分 `bottle` 后，下一版三分类模型训练命令：
+
+```bash
+yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=640 batch=8 project=runs name=train_cup_bottle_mouse_v5_yolov8s
+```
 
 ## 真实图片测试
 
@@ -139,7 +155,7 @@ python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt 
 
 运行后会打开摄像头窗口并实时显示检测框，按 `q` 退出。
 
-如果自训练的二分类模型在复杂背景中误检较多，可以使用 COCO 预训练模型做演示版实时检测。该脚本保留 YOLOv8s 原始 80 类判断能力，但只显示 `bottle`、`cup`、`mouse`，并将 `bottle` 和 `cup` 统一显示为 `cup`：
+如果自训练模型在复杂背景中误检较多，可以使用 COCO 预训练模型做演示版实时检测。该脚本保留 YOLOv8s 原始 80 类判断能力，但只显示 `bottle`、`cup`、`mouse`：
 
 ```bash
 python src/realtime_coco_filter.py --source 0 --model yolov8s.pt --conf 0.3

@@ -14,12 +14,13 @@ COCO_CUP = 41
 COCO_MOUSE = 64
 TARGET_CLASSES = [COCO_BOTTLE, COCO_CUP, COCO_MOUSE]
 DISPLAY_NAMES = {
-    COCO_BOTTLE: "cup",
+    COCO_BOTTLE: "bottle",
     COCO_CUP: "cup",
     COCO_MOUSE: "mouse",
 }
 COLORS = {
     "cup": (255, 0, 0),
+    "bottle": (0, 165, 255),
     "mouse": (255, 255, 0),
 }
 
@@ -29,7 +30,7 @@ def parse_source(source: str):
 
 
 def parse_args():
-    parser = ArgumentParser(description="Run real-time detection with pretrained COCO YOLO and display only cup/mouse.")
+    parser = ArgumentParser(description="Run real-time detection with pretrained COCO YOLO and display only cup/bottle/mouse.")
     parser.add_argument("--source", default="0", help="Camera index, video path, or OpenCV/GStreamer camera source.")
     parser.add_argument("--model", default=str(DEFAULT_MODEL), help="Path to pretrained YOLO model weights.")
     parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")
@@ -93,7 +94,7 @@ def main():
     source = parse_source(args.source)
     cap = open_capture(source, args.width, args.height)
 
-    window_name = "COCO filtered cup/mouse realtime detection"
+    window_name = "COCO filtered cup/bottle/mouse realtime detection"
     last_time = perf_counter()
     fps = 0.0
 

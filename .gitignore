@@ -222,6 +222,7 @@ __marimo__/
 
 # Project data and training artifacts
 data/combined/
+data/label_backup_before_cup_bottle_split/
 test_images/
 runs/
 *.pt

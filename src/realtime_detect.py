@@ -9,6 +9,8 @@ from ultralytics.engine.results import Boxes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_CANDIDATES = [
+    PROJECT_ROOT / "models/cup_bottle_mouse_v5_yolov8s.pt",
+    PROJECT_ROOT / "runs/detect/runs/train_cup_bottle_mouse_v5_yolov8s/weights/best.pt",
     PROJECT_ROOT / "models/cup_mouse_v4_yolov8s.pt",
     PROJECT_ROOT / "runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.pt",
     PROJECT_ROOT / "runs/detect/runs/train_cup_mouse_v3_cup_more/weights/best.pt",
@@ -27,12 +29,13 @@ def parse_source(source: str):
 
 
 def parse_args():
-    parser = ArgumentParser(description="Run real-time YOLO cup/mouse detection from a camera or video.")
+    parser = ArgumentParser(description="Run real-time YOLO cup/bottle/mouse detection from a camera or video.")
     parser.add_argument("--source", default="0", help="Camera index, video path, or OpenCV/GStreamer camera source.")
     parser.add_argument("--model", default=default_model_path(), help="Path to YOLO model weights.")
     parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")
     parser.add_argument("--conf", type=float, default=0.3, help="Base confidence threshold.")
     parser.add_argument("--cup-conf", type=float, default=0.3, help="Minimum confidence to keep cup detections.")
+    parser.add_argument("--bottle-conf", type=float, default=0.3, help="Minimum confidence to keep bottle detections.")
     parser.add_argument("--mouse-conf", type=float, default=0.3, help="Minimum confidence to keep mouse detections.")
     parser.add_argument("--iou", type=float, default=0.4, help="NMS IoU threshold.")
     parser.add_argument("--device", default=None, help="Inference device, for example cpu, 0, or cuda:0.")
@@ -43,14 +46,22 @@ def parse_args():
     return parser.parse_args()
 
 
-def keep_class_thresholds(result, cup_conf: float, mouse_conf: float):
+def keep_class_thresholds(result, cup_conf: float, bottle_conf: float, mouse_conf: float):
     if result.boxes is None or len(result.boxes) == 0:
         return result
 
     data = result.boxes.data
     conf = data[:, -2]
     cls = data[:, -1].int()
-    keep = ((cls == 0) & (conf >= cup_conf)) | ((cls == 1) & (conf >= mouse_conf))
+    thresholds = {
+        "cup": cup_conf,
+        "bottle": bottle_conf,
+        "mouse": mouse_conf,
+    }
+    keep = cls == -1
+    for cls_id, name in result.names.items():
+        if name in thresholds:
+            keep |= (cls == int(cls_id)) & (conf >= thresholds[name])
     result.boxes = Boxes(data[keep], result.orig_shape)
     return result
 
@@ -85,7 +96,7 @@ def main():
     source = parse_source(args.source)
     cap = open_capture(source, args.width, args.height)
 
-    window_name = "cup-mouse realtime detection"
+    window_name = "cup-bottle-mouse realtime detection"
     last_time = perf_counter()
     fps = 0.0
 
@@ -104,7 +115,7 @@ def main():
                 device=args.device,
                 verbose=False,
             )
-            result = keep_class_thresholds(results[0], args.cup_conf, args.mouse_conf)
+            result = keep_class_thresholds(results[0], args.cup_conf, args.bottle_conf, args.mouse_conf)
 
             now = perf_counter()
             elapsed = now - last_time
