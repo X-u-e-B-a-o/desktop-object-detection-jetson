@@ -139,6 +139,12 @@ python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt 
 
 运行后会打开摄像头窗口并实时显示检测框，按 `q` 退出。
 
+如果自训练的二分类模型在复杂背景中误检较多，可以使用 COCO 预训练模型做演示版实时检测。该脚本保留 YOLOv8s 原始 80 类判断能力，但只显示 `bottle`、`cup`、`mouse`，并将 `bottle` 和 `cup` 统一显示为 `cup`：
+
+```bash
+python src/realtime_coco_filter.py --source 0 --model yolov8s.pt --conf 0.3
+```
+
 ## 项目进度
 
 见 `docs/progress.md`

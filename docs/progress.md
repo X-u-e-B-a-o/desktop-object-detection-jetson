@@ -201,6 +201,17 @@ yolo detect val model=runs/detect/runs/train_cup_mouse_v4_yolov8s/weights/best.p
 python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt --conf 0.3 --cup-conf 0.3 --mouse-conf 0.3
 ```
 
+- 为减少二分类自训练模型在复杂背景下将人、灯、衣物等误检为 `cup` 或 `mouse`，新增 COCO 预训练模型过滤版实时检测脚本：
+  - 脚本路径：`src/realtime_coco_filter.py`
+  - 使用 `yolov8s.pt` 原始 80 类预训练能力
+  - 只显示 COCO 中的 `bottle`、`cup`、`mouse`
+  - 将 `bottle` 和 `cup` 统一显示为项目中的 `cup`
+  - 运行方式：
+
+```bash
+python src/realtime_coco_filter.py --source 0 --model yolov8s.pt --conf 0.3
+```
+
 ## 下一步计划
 - 使用真实桌面图片测试第四版模型检测效果
 - 将模型部署到 Jetson 开发板
