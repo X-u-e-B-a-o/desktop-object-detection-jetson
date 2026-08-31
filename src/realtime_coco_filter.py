@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 
 import cv2
 from ultralytics import YOLO
@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument("--device", default=None, help="Inference device, for example cpu, 0, or cuda:0.")
     parser.add_argument("--width", type=int, default=1280, help="Camera capture width.")
     parser.add_argument("--height", type=int, default=720, help="Camera capture height.")
+    parser.add_argument("--max-empty-frames", type=int, default=30, help="Stop after this many failed frame reads.")
     parser.add_argument("--no-window", action="store_true", help="Run without opening a display window.")
     parser.add_argument("--print", action="store_true", help="Print detections to terminal.")
     return parser.parse_args()
@@ -49,6 +50,7 @@ def open_capture(source, width: int, height: int):
     if isinstance(source, int):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video source: {source}")
     return cap
@@ -97,13 +99,19 @@ def main():
     window_name = "COCO filtered cup/bottle/mouse realtime detection"
     last_time = perf_counter()
     fps = 0.0
+    empty_frames = 0
 
     try:
         while True:
             ok, frame = cap.read()
             if not ok:
-                print("Could not read frame from camera.")
-                break
+                empty_frames += 1
+                if empty_frames >= args.max_empty_frames:
+                    print("Could not read frame from camera.")
+                    break
+                sleep(0.03)
+                continue
+            empty_frames = 0
 
             results = model.predict(
                 frame,
