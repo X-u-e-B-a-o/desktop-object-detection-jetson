@@ -240,4 +240,6 @@ runs/
 *.out
 *.toc
 *.synctex.gz
+docs/report.tex
 docs/report.pdf
+docs/report_assets/
