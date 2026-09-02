@@ -12,12 +12,12 @@
 
 ## 检测类别
 
-当前模型类别：
+当前 Jetson 演示模型类别：
 - cup
-- bottle
 - mouse
 
 后续可扩展：
+- bottle
 - phone
 
 ## 技术路线
@@ -31,13 +31,13 @@
 - 已使用 test 集完成独立评估。
 - 已补充真实桌面场景图片，并用 Roboflow 手动标注后合并进训练集，用于后续微调模型。
 - 已完成 YOLOv8s 预训练模型 50 个 epoch 训练和 test 集评估。
-- 已将 `bottle` 从原来的 `cup` 类中拆分出来，当前项目采用 `cup`、`bottle`、`mouse` 三类。
+- 已将第四版 YOLOv8s 模型部署到 Jetson，并补充 ROS2 实时检测节点。
 
 ## 数据集说明
 
 数据集采用 YOLO 目标检测格式，每张图片对应一个 `.txt` 标签文件。标签文件中每一行表示一个目标，包括类别编号、目标中心点坐标以及边界框宽高。
 
-当前类别编号：
+当前整理后的数据集类别编号：
 
 ```text
 0 = cup
@@ -97,12 +97,6 @@ Test mAP50-95: 0.722
 
 详细训练命令、评估结果和进度记录见 `docs/progress.md`。
 
-拆分 `bottle` 后，下一版三分类模型训练命令：
-
-```bash
-yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=640 batch=8 project=runs name=train_cup_bottle_mouse_v5_yolov8s
-```
-
 ## 真实图片测试
 
 真实桌面图片可放在本地 `test_images/` 目录中。该目录不会提交到 GitHub。
@@ -155,10 +149,86 @@ python src/realtime_detect.py --source 0 --model models/cup_mouse_v4_yolov8s.pt 
 
 运行后会打开摄像头窗口并实时显示检测框，按 `q` 退出。
 
+实时检测窗口中可使用快捷键：
+
+```text
+s = 保存当前检测截图
+q = 退出实时检测
+```
+
+截图默认保存到：
+
+```text
+~/xb/realtime_frames/
+```
+
 如果自训练模型在复杂背景中误检较多，可以使用 COCO 预训练模型做演示版实时检测。该脚本保留 YOLOv8s 原始 80 类判断能力，但只显示 `bottle`、`cup`、`mouse`：
 
 ```bash
 python src/realtime_coco_filter.py --source 0 --model yolov8s.pt --conf 0.3
+```
+
+## ROS2 实时检测节点
+
+为满足实验中 ROS2 通信要求，项目新增 ROS2 实时检测脚本：
+
+```text
+src/ros2_realtime_detect.py
+```
+
+该节点会在 Jetson 上完成：
+
+```text
+摄像头采集 -> YOLO 推理 -> OpenCV 实时显示 -> ROS2 发布图像和检测结果
+```
+
+为保证 Jetson 上实时帧率，默认只发布检测结果 topic：
+
+```text
+/yolo/detections       检测结果 JSON 字符串，类型 std_msgs/String
+```
+
+如需同时发布图像 topic，可在运行命令中加入 `--publish-images`：
+
+```text
+/camera/image_raw      原始摄像头图像，类型 sensor_msgs/Image
+/yolo/annotated_image  带检测框的图像，类型 sensor_msgs/Image
+```
+
+Jetson 上运行前先加载 ROS2 环境：
+
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+运行 v4 模型的 ROS2 实时检测：
+
+```bash
+python3 src/ros2_realtime_detect.py --model models/cup_mouse_v4_yolov8s.pt --conf 0.4
+```
+
+Jetson 帧率不足时推荐使用轻量参数：
+
+```bash
+python3 src/ros2_realtime_detect.py --model models/cup_mouse_v4_yolov8s.pt --imgsz 320 --width 640 --height 480 --conf 0.4
+```
+
+也可以使用项目提供的启动脚本：
+
+```bash
+./scripts/run_ros2_v4.sh
+```
+
+查看检测结果 topic：
+
+```bash
+ros2 topic echo /yolo/detections
+```
+
+查看当前发布的 topic：
+
+```bash
+ros2 topic list
 ```
 
 ## 项目进度

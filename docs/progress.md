@@ -246,7 +246,54 @@ yolo detect train data=data/combined/data.yaml model=yolov8s.pt epochs=50 imgsz=
 ```
 
 ## 下一步计划
-- 使用三分类数据集重新训练 cup/bottle/mouse 模型
+- 使用 test 集独立评估三分类模型
 - 使用真实桌面图片测试三分类模型检测效果
 - 将三分类模型部署到 Jetson 开发板
 - 后续根据实验需要考虑加入 phone 第四类
+
+## 2026-09-02
+- 将第四版 YOLOv8s 二分类模型部署到 Jetson 开发板：
+  - Jetson 目标目录：`/home/nvidia/xb/desktop-object-detection-jetson`
+  - 模型保存路径：`models/cup_mouse_v4_yolov8s.pt`
+- 在 Jetson 上完成 OpenCV 实时检测验证：
+  - 使用 USB 摄像头作为输入源
+  - 实时显示 `cup` 和 `mouse` 检测框、类别名、置信度和 FPS
+  - 实时检测脚本支持按 `s` 保存当前检测截图，按 `q` 退出
+- 为满足 ROS2 通信要求，新增 ROS2 实时检测节点：
+  - 脚本路径：`src/ros2_realtime_detect.py`
+  - 节点名称：`yolo_realtime_detector`
+  - 默认目标帧率：15 FPS
+  - 支持按 `s` 手动保存当前检测截图
+- 新增 Jetson ROS2 一键启动脚本：
+  - 脚本路径：`scripts/run_ros2_v4.sh`
+  - 默认加载 ROS2 Humble/Foxy 环境
+  - 默认调用 `models/cup_mouse_v4_yolov8s.pt`
+- ROS2 节点发布的 topic：
+  - `/camera/image_raw`：原始摄像头图像，消息类型 `sensor_msgs/Image`
+  - `/yolo/annotated_image`：带检测框的实时图像，消息类型 `sensor_msgs/Image`
+  - `/yolo/detections`：检测结果 JSON 字符串，消息类型 `std_msgs/String`
+- ROS2 运行方式：
+
+```bash
+source /opt/ros/humble/setup.bash
+python3 src/ros2_realtime_detect.py --model models/cup_mouse_v4_yolov8s.pt --conf 0.4
+```
+
+或使用短命令：
+
+```bash
+./scripts/run_ros2_v4.sh
+```
+
+- ROS2 验证命令：
+
+```bash
+ros2 topic list
+ros2 topic echo /yolo/detections
+```
+
+- 当前实验流程已补全为：
+
+```text
+摄像头采集 -> YOLO 目标检测 -> OpenCV 实时显示 -> ROS2 topic 发布检测结果
+```

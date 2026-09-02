@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter, sleep
 
@@ -41,7 +42,16 @@ def parse_args():
     parser.add_argument("--device", default=None, help="Inference device, for example cpu, 0, or cuda:0.")
     parser.add_argument("--width", type=int, default=1280, help="Camera capture width.")
     parser.add_argument("--height", type=int, default=720, help="Camera capture height.")
+    parser.add_argument("--display-scale", type=float, default=1.5, help="Scale the display window without changing inference.")
+    parser.add_argument("--target-fps", type=float, default=15.0, help="Limit processing to this target FPS.")
+    parser.add_argument("--save-frames", action="store_true", help="Deprecated. Press s in the window to save one frame.")
+    parser.add_argument(
+        "--save-dir",
+        default=str(Path.home() / "xb/realtime_frames"),
+        help="Base folder for screenshots saved with the s key. A timestamped folder is created inside it.",
+    )
     parser.add_argument("--max-empty-frames", type=int, default=30, help="Stop after this many failed frame reads.")
+    parser.add_argument("--scan-cameras", action="store_true", help="Scan camera indexes and exit.")
     parser.add_argument("--no-window", action="store_true", help="Run without opening a display window.")
     parser.add_argument("--print", action="store_true", help="Print detections to terminal.")
     return parser.parse_args()
@@ -68,7 +78,14 @@ def keep_class_thresholds(result, cup_conf: float, bottle_conf: float, mouse_con
 
 
 def open_capture(source, width: int, height: int):
-    cap = cv2.VideoCapture(source)
+    if isinstance(source, int):
+        cap = cv2.VideoCapture(source, cv2.CAP_AVFOUNDATION)
+        if not cap.isOpened():
+            cap.release()
+            cap = cv2.VideoCapture(source)
+    else:
+        cap = cv2.VideoCapture(source)
+
     if isinstance(source, int):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
@@ -76,6 +93,21 @@ def open_capture(source, width: int, height: int):
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video source: {source}")
     return cap
+
+
+def scan_cameras(max_index: int = 5):
+    for index in range(max_index + 1):
+        cap = cv2.VideoCapture(index, cv2.CAP_AVFOUNDATION)
+        ok = cap.isOpened()
+        frame_ok = False
+        shape = None
+        if ok:
+            frame_ok, frame = cap.read()
+            if frame_ok:
+                shape = frame.shape
+        cap.release()
+        status = "available" if ok and frame_ok else "unavailable"
+        print(f"camera {index}: {status}" + (f", frame_shape={shape}" if shape else ""))
 
 
 def print_detections(result):
@@ -92,8 +124,25 @@ def print_detections(result):
     print(", ".join(parts))
 
 
+def create_frame_output_dir(save_dir: str) -> Path:
+    output_dir = Path(save_dir).expanduser() / datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Saving frames to: {output_dir}")
+    return output_dir
+
+
+def scale_for_display(frame, scale: float):
+    if scale <= 0 or abs(scale - 1.0) < 0.01:
+        return frame
+    return cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+
+
 def main():
     args = parse_args()
+    if args.scan_cameras:
+        scan_cameras()
+        return
+
     model = YOLO(args.model)
     source = parse_source(args.source)
     cap = open_capture(source, args.width, args.height)
@@ -102,9 +151,15 @@ def main():
     last_time = perf_counter()
     fps = 0.0
     empty_frames = 0
+    frame_index = 0
+    save_dir = None
+    frame_interval = 1.0 / args.target_fps if args.target_fps and args.target_fps > 0 else 0.0
+    if args.save_frames:
+        print("Press s in the detection window to save one screenshot. Automatic frame saving is disabled.")
 
     try:
         while True:
+            loop_start = perf_counter()
             ok, frame = cap.read()
             if not ok:
                 empty_frames += 1
@@ -135,21 +190,29 @@ def main():
             if args.print:
                 print_detections(result)
 
-            if not args.no_window:
+            annotated = None
+            if not args.no_window or save_dir is not None:
                 annotated = result.plot()
-                cv2.putText(
-                    annotated,
-                    f"FPS: {fps:.1f}",
-                    (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1.0,
-                    (0, 255, 0),
-                    2,
-                    cv2.LINE_AA,
-                )
-                cv2.imshow(window_name, annotated)
-                if cv2.waitKey(1) & 0xFF in (ord("q"), 27):
+                cv2.putText(annotated, f"FPS: {fps:.1f}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
+
+            if not args.no_window and annotated is not None:
+                display_frame = scale_for_display(annotated, args.display_scale)
+                cv2.imshow(window_name, display_frame)
+                key = cv2.waitKey(1) & 0xFF
+                if key in (ord("q"), 27):
                     break
+                if key == ord("s"):
+                    if save_dir is None:
+                        save_dir = create_frame_output_dir(args.save_dir)
+                    frame_index += 1
+                    screenshot_path = save_dir / f"screenshot_{frame_index:03d}.jpg"
+                    cv2.imwrite(str(screenshot_path), display_frame)
+                    print(f"Saved screenshot: {screenshot_path}")
+
+            if frame_interval > 0:
+                elapsed = perf_counter() - loop_start
+                if elapsed < frame_interval:
+                    sleep(frame_interval - elapsed)
     except KeyboardInterrupt:
         pass
     finally:

@@ -233,3 +233,10 @@ runs/
 
 # Dataset caches
 *.cache
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
